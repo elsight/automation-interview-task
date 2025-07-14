@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Device Manager</title>
+    <style>
+        .error-message {
+            color: red;
+            margin: 10px 0;
+            display: none;
+        }
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        .delete-btn {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+        .delete-btn:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+<h1>Device Manager</h1>
+<form id="device-form">
+    <input name="id" type="hidden">
+    <input name="name" placeholder="Device Name" required>
+    <input name="ip_address" placeholder="IP Address (e.g., 192.168.1.1)" required>
+    <div id="error-message" class="error-message"></div>
+    <button type="submit">Save Device</button>
+</form>
+<table id="device-table"></table>
+<script>
+    const form = document.getElementById('device-form');
+    const table = document.getElementById('device-table');
+    const errorMessage = document.getElementById('error-message');
+
+    function loadDevices() {
+        fetch('/api/devices').then(res => res.json()).then(devices => {
+            table.innerHTML = devices.map(d =>
+                `<tr>
+                    <td>${d.name}</td>
+                    <td>${d.ip_address}</td>
+                    <td class="action-buttons">
+                        <button onclick='editDevice("${d.id}", "${d.name}", "${d.ip_address}")'>Edit</button>
+                        <button class="delete-btn" onclick='deleteDevice("${d.id}")'>Delete</button>
+                    </td>
+                </tr>`).join('');
+        });
+    }
+
+    function deleteDevice(id) {
+        if (!confirm('Are you sure you want to delete this device?')) {
+            return;
+        }
+        
+        fetch(`/api/device/${id}`, {
+            method: 'DELETE',
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.json().then(err => {
+                    throw new Error(err.detail || 'Error deleting device');
+                });
+            }
+            return response.json();
+        })
+        .then(() => {
+            loadDevices();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError(error.message);
+        });
+    }
+
+    function editDevice(id, name, ip_address) {
+        form.id.value = id;
+        form.name.value = name;
+        form.ip_address.value = ip_address;
+        errorMessage.style.display = 'none';
+    }
+
+    function showError(message) {
+        errorMessage.textContent = message;
+        errorMessage.style.display = 'block';
+    }
+
+    form.onsubmit = e => {
+        e.preventDefault();
+        errorMessage.style.display = 'none';
+        
+        const id = form.id.value;
+        const name = form.name.value;
+        const ip_address = form.ip_address.value;  // Changed from form.ip.
+        if (!name || !ip_address) return;
+        
+        const method = id ? 'PUT' : 'POST';
+        const url = id ? `/api/device/${id}` : '/api/device';
+        
+        fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, ip_address })
+        })
+        .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => {
+                // Handle validation errors from FastAPI
+                if (err.detail) {
+                    if (Array.isArray(err.detail)) {
+                        throw new Error(err.detail[0].msg);
+                    } else {
+                        throw new Error(err.detail);
+                    }
+                }
+                throw new Error('Invalid IP address format. Please use format like 192.168.1.1');
+            });
+        }
+        return response.json();
+    })
+    .then(() => {
+        form.reset();
+        loadDevices();
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showError(error.message || 'Invalid IP address format. Please use format like 192.168.1.1');
+    });
+    };
+
+    loadDevices();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+mongomock
+fakeredis
+pytest
+httpx
+playwright
+pytest-playwright
+pydantic
