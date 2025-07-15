@@ -7,6 +7,7 @@ class Device(BaseModel):
         IPvAnyAddress,
         Field(description="Valid IPv4 or IPv6 address (e.g., '192.168.1.1' or '2001:db8::1')")
     ]
+    active: bool = False  # Default value is False
 
     @field_validator('ip_address', mode='before')
     @classmethod

@@ -25,8 +25,6 @@ Plan and implement test cases:
 - Create at least a few different test cases per each test type
 - If time is short, try to create a placeholder for more tests with a short description for each (optional)
 - It is better to do fewer tests properly than a lot improperly
-- 
-
 
 ### 3. Documentation and Reporting
 

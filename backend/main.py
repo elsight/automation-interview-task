@@ -35,12 +35,13 @@ def list_devices():
 
 @app.post("/api/device")
 def create_device(device: Device):
-    device_data = device.model_dump()  # Use model_dump() instead of dict()
-    device_data['ip_address'] = str(device_data['ip_address'])  # Convert IP to string
+    device_data = device.model_dump()
+    device_data['ip_address'] = str(device_data['ip_address'])
     device_data.update({
         "id": str(uuid4()),
         "status": "offline",
-        "last_updated": datetime.utcnow().isoformat()
+        "last_updated": datetime.utcnow().isoformat(),
+        "active": device_data.get('active', False)
     })
     devices_collection.insert_one(device_data)
     redis_client.delete("devices")
@@ -48,8 +49,8 @@ def create_device(device: Device):
 
 @app.put("/api/device/{device_id}")
 def update_device(device_id: str, device: Device):
-    update_data = device.model_dump()  # Use model_dump() instead of dict()
-    update_data['ip_address'] = str(update_data['ip_address'])  # Convert IP to string
+    update_data = device.model_dump()
+    update_data['ip_address'] = str(update_data['ip_address'])
     update_data["last_updated"] = datetime.utcnow().isoformat()
     result = devices_collection.update_one({"id": device_id}, {"$set": update_data})
     if result.matched_count == 0:
@@ -65,3 +66,20 @@ def delete_device(device_id: str):
         raise HTTPException(status_code=404, detail="Device not found")
     redis_client.delete("devices")
     return {"status": "deleted"}
+
+@app.get("/api/devices/search")
+def search_devices(query: str):
+    # Case-insensitive search in both name and IP address
+    devices = list(devices_collection.find({
+        "$or": [
+            {"name": {"$regex": query, "$options": "i"}},
+            {"ip_address": {"$regex": query, "$options": "i"}}
+        ]
+    }, {'_id': 0}))
+    
+    # Ensure all documents have string IP addresses
+    for device in devices:
+        if 'ip_address' in device:
+            device['ip_address'] = str(device['ip_address'])
+            
+    return devices
