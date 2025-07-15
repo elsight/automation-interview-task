@@ -9,8 +9,35 @@ from .models import Device
 import json
 import os
 
-
 app = FastAPI()
+
+# Add this function to initialize test data
+def initialize_test_data():
+    if devices_collection.count_documents({}) == 0:
+        initial_devices = [
+            {
+                "id": str(uuid4()),
+                "name": "Test Router",
+                "ip_address": "192.168.1.1",
+                "status": "online",
+                "active": True,
+                "last_updated": datetime.utcnow().isoformat()
+            },
+            {
+                "id": str(uuid4()),
+                "name": "Test Switch",
+                "ip_address": "192.168.1.2",
+                "status": "offline",
+                "active": False,
+                "last_updated": datetime.utcnow().isoformat()
+            }
+        ]
+        devices_collection.insert_many(initial_devices)
+
+# Add this event handler
+@app.on_event("startup")
+async def startup_event():
+    initialize_test_data()
 
 # Mount the frontend directory
 app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
