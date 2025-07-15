@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Device Manager</title>
+    <title>Devices Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -264,18 +264,45 @@
     transform: rotate(180deg);
 }
 </style>
+<style>
+/* Add these styles to your existing CSS */
+.status-filter {
+    margin-left: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    color: #2c3e50;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.status-filter:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.status-filter option {
+    padding: 5px;
+}
+</style>
 </head>
 <body>
     <div class="container">
         <h1>Device Manager</h1>
 
         <div class="search-container">
-            <input type="text" id="search-input" placeholder="Search devices by name or IP...">
-            <button id="search-button">Search</button>
-            <button id="clear-search">Clear</button>
-            <button id="sort-name" class="sort-btn">
+    <input type="text" id="search-input" placeholder="Search devices by name or IP...">
+    <button id="search-button">Search</button>
+    <button id="clear-search">Clear</button>
+    <button id="sort-name" class="sort-btn">
         Sort by Name <span class="sort-icon">↕</span>
     </button>
+    <select id="status-filter" class="status-filter">
+        <option value="all">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+    </select>
 </div>
 
         <form id="device-form">
@@ -554,6 +581,95 @@ function loadDevices() {
             showError('Failed to load devices');
         });
 }
+</script>
+<script>
+// Add these variables to your existing JavaScript
+let currentStatusFilter = 'all';
+const statusFilter = document.getElementById('status-filter');
+
+// Add the filter function
+function filterAndSortDevices(devices) {
+    // First filter by status
+    let filteredDevices = devices;
+    if (currentStatusFilter !== 'all') {
+        const isActive = currentStatusFilter === 'active';
+        filteredDevices = devices.filter(device => device.active === isActive);
+    }
+    
+    // Then sort the filtered results
+    return filteredDevices.sort((a, b) => {
+        const nameA = a.name.toLowerCase();
+        const nameB = b.name.toLowerCase();
+        return currentSortDirection === 'asc' 
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+    });
+}
+
+// Add status filter event listener
+statusFilter.onchange = () => {
+    currentStatusFilter = statusFilter.value;
+    loadDevices();
+};
+
+// Modify your existing loadDevices function
+function loadDevices() {
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(devices => {
+            const filteredAndSortedDevices = filterAndSortDevices(devices);
+            displayDevices(filteredAndSortedDevices);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to load devices');
+        });
+}
+
+// Modify your search button click handler
+searchButton.onclick = () => {
+    const query = searchInput.value.trim();
+    if (!query) {
+        loadDevices();
+        return;
+    }
+
+    fetch(`/api/devices/search?query=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(devices => {
+            const filteredAndSortedDevices = filterAndSortDevices(devices);
+            displayDevices(filteredAndSortedDevices);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to search devices');
+        });
+};
+
+// Update your sort button click handler
+sortButton.onclick = () => {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    sortButton.classList.toggle('descending', currentSortDirection === 'desc');
+    
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(devices => {
+            const filteredAndSortedDevices = filterAndSortDevices(devices);
+            displayDevices(filteredAndSortedDevices);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to sort devices');
+        });
+};
+
+// Update clear button handler to reset the filter
+clearButton.onclick = () => {
+    searchInput.value = '';
+    currentStatusFilter = 'all';
+    statusFilter.value = 'all';
+    loadDevices();
+};
 </script>
 </body>
 </html>
