@@ -241,6 +241,29 @@
             color: #c0392b;
         }
     </style>
+<style>
+/* Add these styles to your existing CSS */
+.sort-btn {
+    background-color: #2ecc71;
+    color: white;
+    margin-left: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.sort-btn:hover {
+    background-color: #27ae60;
+}
+
+.sort-btn .sort-icon {
+    transition: transform 0.3s ease;
+}
+
+.sort-btn.descending .sort-icon {
+    transform: rotate(180deg);
+}
+</style>
 </head>
 <body>
     <div class="container">
@@ -250,7 +273,10 @@
             <input type="text" id="search-input" placeholder="Search devices by name or IP...">
             <button id="search-button">Search</button>
             <button id="clear-search">Clear</button>
-        </div>
+            <button id="sort-name" class="sort-btn">
+        Sort by Name <span class="sort-icon">↕</span>
+    </button>
+</div>
 
         <form id="device-form">
             <input name="id" type="hidden">
@@ -306,7 +332,8 @@
         fetch('/api/devices')
             .then(response => response.json())
             .then(devices => {
-                displayDevices(devices);
+                const sortedDevices = sortDevices(devices);
+                displayDevices(sortedDevices);
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -481,6 +508,52 @@
 
     // Load devices when the page loads
     loadDevices();
+</script>
+<script>
+// Add this code to your existing JavaScript
+let currentSortDirection = 'asc';
+const sortButton = document.getElementById('sort-name');
+
+function sortDevices(devices) {
+    return devices.sort((a, b) => {
+        const nameA = a.name.toLowerCase();
+        const nameB = b.name.toLowerCase();
+        return currentSortDirection === 'asc' 
+            ? nameA.localeCompare(nameB)
+            : nameB.localeCompare(nameA);
+    });
+}
+
+sortButton.onclick = () => {
+    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+    sortButton.classList.toggle('descending', currentSortDirection === 'desc');
+    
+    // Get current devices and resort them
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(devices => {
+            const sortedDevices = sortDevices(devices);
+            displayDevices(sortedDevices);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to sort devices');
+        });
+};
+
+// Modify your existing loadDevices function to include sorting
+function loadDevices() {
+    fetch('/api/devices')
+        .then(response => response.json())
+        .then(devices => {
+            const sortedDevices = sortDevices(devices);
+            displayDevices(sortedDevices);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showError('Failed to load devices');
+        });
+}
 </script>
 </body>
 </html>
