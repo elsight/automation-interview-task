@@ -8,6 +8,7 @@ from .redis_client import redis_client
 from .models import Device
 import json
 import os
+from pymongo.errors import DuplicateKeyError
 
 app = FastAPI()
 
@@ -62,29 +63,38 @@ def list_devices():
 
 @app.post("/api/device")
 def create_device(device: Device):
-    device_data = device.model_dump()
-    device_data['ip_address'] = str(device_data['ip_address'])
-    device_data.update({
-        "id": str(uuid4()),
-        "status": "offline",
-        "last_updated": datetime.utcnow().isoformat(),
-        "active": device_data.get('active', False)
-    })
-    devices_collection.insert_one(device_data)
-    redis_client.delete("devices")
-    return device_data
+    try:
+        device_data = device.model_dump()
+        device_data['id'] = str(uuid4())
+        device_data['ip_address'] = str(device_data['ip_address'])
+        device_data["created_at"] = datetime.utcnow().isoformat()
+        device_data["last_updated"] = device_data["created_at"]
+        devices_collection.insert_one(device_data)
+        redis_client.delete("devices")
+        return {**device_data, "_id": str(device_data["_id"])}
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=400,
+            detail="A device with this IP address already exists"
+        )
 
 @app.put("/api/device/{device_id}")
 def update_device(device_id: str, device: Device):
-    update_data = device.model_dump()
-    update_data['ip_address'] = str(update_data['ip_address'])
-    update_data["last_updated"] = datetime.utcnow().isoformat()
-    result = devices_collection.update_one({"id": device_id}, {"$set": update_data})
-    if result.matched_count == 0:
-        raise HTTPException(status_code=404, detail="Device not found")
-    redis_client.delete("devices")
-    updated_device = devices_collection.find_one({"id": device_id}, {'_id': 0})
-    return updated_device
+    try:
+        update_data = device.model_dump()
+        update_data['ip_address'] = str(update_data['ip_address'])
+        update_data["last_updated"] = datetime.utcnow().isoformat()
+        result = devices_collection.update_one({"id": device_id}, {"$set": update_data})
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Device not found")
+        redis_client.delete("devices")
+        updated_device = devices_collection.find_one({"id": device_id}, {'_id': 0})
+        return updated_device
+    except DuplicateKeyError:
+        raise HTTPException(
+            status_code=400,
+            detail="A device with this IP address already exists"
+        )
 
 @app.delete("/api/device/{device_id}")
 def delete_device(device_id: str):
