@@ -35,6 +35,8 @@ requirements.txt  # Python dependencies
 ### 1. Install dependencies
 
 ```bash
+source .venv/bin/activate
+pip install --upgrade pip
 pip install -r requirements.txt
 playwright install
 ```
@@ -42,15 +44,25 @@ playwright install
 ### 2. Run the server
 
 ```bash
-uvicorn backend.main:app --reload
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 3. Open the frontend
 
-Navigate to:
-
-```
-http://localhost:8000/frontend/index.html
-```
+In the bottom panel, navigate to PORTS tab.
+In the Forwarded Address column, select the "open in browser" icon.
+The web site should be open in a new tab
 
 ---
+
+### 4. Testing
+
+Open a new termainal tab in codespace.
+run
+
+```bash
+pytest ./tests/tests.py
+```
+There are already few tests in the system for API and playwright setup, so it should be easier to continue from here.
+
+Good Luck :)
