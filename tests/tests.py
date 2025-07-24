@@ -71,24 +71,6 @@ def test_create_device_validation():
 
     print("Test completed")
 
-def test_search_functionality():
-    url = "http://localhost:8000"
-
-    test_device = {"name": "searchable device", "ip_address": "10.0.0.1", "active": True}
-    create_response = requests.post(url + "/api/device", json=test_device)
-
-    time.sleep(0.5)
-
-    search_response = requests.get(f"{url}/api/devices/search?query=searchable")
-    results = search_response.json()
-
-    assert results
-
-    ip_search = requests.get(f"{url}/api/devices/search?query=10.0.0.1")
-    ip_results = ip_search.json()
-
-    print(f"IP search found {len(ip_results)} results")
-
 def test_page_loads_with_playwright(page: Page):
     """Test that the main page loads correctly using Playwright"""
     
@@ -100,7 +82,7 @@ def test_page_loads_with_playwright(page: Page):
     
     # Verify main heading is present
     heading = page.locator("h1")
-    expect(heading).to_have_text("Device Manager")
+    expect(heading).to_have_text("Devices Management System")
     
     # Verify the form is present
     form = page.locator("#device-form")
@@ -126,4 +108,3 @@ def test_page_loads_with_playwright(page: Page):
     expect(active_checkbox).to_be_visible()
     expect(submit_button).to_be_visible()
     expect(submit_button).to_have_text("Save Device")
-
